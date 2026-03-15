@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Itens de Solução/">
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Project Path="AiMultiAgent.API/AiMultiAgent.API.csproj" />
+  <Project Path="AiMultiAgent.Application/AiMultiAgent.Application.csproj" />
+  <Project Path="AiMultiAgent.Infrastructure/AiMultiAgent.Infrastructure.csproj" />
+  <Project Path="AiMultiAgent.Worker/AiMultiAgent.Worker.csproj" />
+</Solution>
