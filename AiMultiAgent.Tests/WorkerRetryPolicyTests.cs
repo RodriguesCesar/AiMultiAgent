@@ -1,5 +1,4 @@
 using System.Text;
-using AiMultiAgent.Worker;
 using Xunit;
 
 namespace AiMultiAgent.Tests;
@@ -13,7 +12,7 @@ public class WorkerRetryPolicyTests
     [InlineData(4, 3, false)]
     public void ShouldRetry_AppliesExpectedRule(int currentRetry, int maxRetry, bool expected)
     {
-        var result = Worker.ShouldRetry(currentRetry, maxRetry);
+        var result = global::AiMultiAgent.Worker.Worker.ShouldRetry(currentRetry, maxRetry);
 
         Assert.Equal(expected, result);
     }
@@ -21,7 +20,7 @@ public class WorkerRetryPolicyTests
     [Fact]
     public void ParseRetryCount_WhenHeaderMissing_ReturnsZero()
     {
-        var retryCount = Worker.ParseRetryCount(null);
+        var retryCount = global::AiMultiAgent.Worker.Worker.ParseRetryCount(null);
 
         Assert.Equal(0, retryCount);
     }
@@ -31,7 +30,7 @@ public class WorkerRetryPolicyTests
     {
         var headers = new Dictionary<string, object?> { ["x-retry-count"] = 2 };
 
-        var retryCount = Worker.ParseRetryCount(headers);
+        var retryCount = global::AiMultiAgent.Worker.Worker.ParseRetryCount(headers);
 
         Assert.Equal(2, retryCount);
     }
@@ -41,7 +40,7 @@ public class WorkerRetryPolicyTests
     {
         var headers = new Dictionary<string, object?> { ["x-retry-count"] = Encoding.UTF8.GetBytes("3") };
 
-        var retryCount = Worker.ParseRetryCount(headers);
+        var retryCount = global::AiMultiAgent.Worker.Worker.ParseRetryCount(headers);
 
         Assert.Equal(3, retryCount);
     }
@@ -51,7 +50,7 @@ public class WorkerRetryPolicyTests
     {
         var headers = new Dictionary<string, object?> { ["x-retry-count"] = "invalid" };
 
-        var retryCount = Worker.ParseRetryCount(headers);
+        var retryCount = global::AiMultiAgent.Worker.Worker.ParseRetryCount(headers);
 
         Assert.Equal(0, retryCount);
     }
