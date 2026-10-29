@@ -6,4 +6,5 @@
   <Project Path="AiMultiAgent.Application/AiMultiAgent.Application.csproj" />
   <Project Path="AiMultiAgent.Infrastructure/AiMultiAgent.Infrastructure.csproj" />
   <Project Path="AiMultiAgent.Worker/AiMultiAgent.Worker.csproj" />
+  <Project Path="AiMultiAgent.Tests/AiMultiAgent.Tests.csproj" />
 </Solution>

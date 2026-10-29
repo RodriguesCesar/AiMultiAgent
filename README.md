@@ -72,6 +72,21 @@ Acessos locais:
 Dashboard provisionado automaticamente:
 - `AiMultiAgent / AiMultiAgent - Queue & Agents Overview`
 
+## Testes automatizados (Fase 4)
+
+Projeto de testes: `AiMultiAgent.Tests`
+
+Cobertura inicial:
+- Roteamento do orquestrador (keywords -> provedor correto).
+- Validação do endpoint `POST /api/ai` (bad request e accepted).
+- Regra de retry/DLQ do worker (`ShouldRetry` e parse do header `x-retry-count`).
+
+Executar testes:
+
+```bash
+dotnet test AiMultiAgent.Tests/AiMultiAgent.Tests.csproj --configuration Release
+```
+
 ## Configuração rápida
 
 1. Copie `.env.example` para `.env` e preencha os valores:
@@ -129,6 +144,7 @@ curl -X POST http://localhost:5000/api/ai \
 - `AiMultiAgent.Worker`: consumo de fila, orquestração e persistência.
 - `AiMultiAgent.Application`: agentes e orquestrador.
 - `AiMultiAgent.Infrastructure`: RabbitMQ e MongoDB.
+- `AiMultiAgent.Tests`: testes unitários e de comportamento.
 
 ## CI/CD
 
@@ -136,11 +152,11 @@ Pipeline GitHub Actions em `.github/workflows/ci.yml` com:
 
 1. `dotnet restore`
 2. `dotnet build --configuration Release --no-restore`
-3. `dotnet test` (auto-skip se não houver projeto de teste)
+3. `dotnet test` para todos os projetos de teste encontrados
 
 ## Próximas evoluções recomendadas
 
-- Testes automatizados para orquestrador e integração API/Worker.
+- Retry com backoff/delay (TTL + retry queues), além do retry imediato atual.
 - Política de roteamento por custo/latência/qualidade (não só keyword).
-- Endpoint para inspeção da DLQ (admin/ops).
+- Endpoint para inspeção e replay da DLQ (admin/ops).
 - Persistência de metadados de execução (provider/model/latência/status) no MongoDB.

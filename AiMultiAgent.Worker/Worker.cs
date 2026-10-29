@@ -60,9 +60,9 @@ public class Worker(
             {
                 FailedCounter.Add(1, new KeyValuePair<string, object?>("queue", rabbitSettings.QueueName));
 
-                var currentRetry = GetRetryCount(ea.BasicProperties?.Headers);
+                var currentRetry = ParseRetryCount(ea.BasicProperties?.Headers);
 
-                if (currentRetry < rabbitSettings.MaxRetryCount)
+                if (ShouldRetry(currentRetry, rabbitSettings.MaxRetryCount))
                 {
                     var nextRetry = currentRetry + 1;
                     await RepublishWithRetryAsync(channel, message, ea.BasicProperties?.Headers, nextRetry, stoppingToken);
@@ -183,7 +183,12 @@ public class Worker(
         );
     }
 
-    private static int GetRetryCount(IReadOnlyDictionary<string, object?>? headers)
+    internal static bool ShouldRetry(int currentRetry, int maxRetryCount)
+    {
+        return currentRetry < maxRetryCount;
+    }
+
+    internal static int ParseRetryCount(IReadOnlyDictionary<string, object?>? headers)
     {
         if (headers == null || !headers.TryGetValue(RetryHeaderName, out var value) || value == null)
             return 0;
