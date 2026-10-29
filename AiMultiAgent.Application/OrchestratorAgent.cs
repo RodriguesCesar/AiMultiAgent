@@ -1,21 +1,15 @@
-﻿using AiMultiAgent.Application.Interfaces;
-using Mscc.GenerativeAI.Types;
+using AiMultiAgent.Application.Interfaces;
 
 namespace AiMultiAgent.Application;
 
-public class OrchestratorAgent : IOrchestratorAgent
+public class OrchestratorAgent(OpenAIAgent openAIAgent, GeminiAgent geminiAgent) : IOrchestratorAgent
 {
-    private readonly OpenAIAgent _openAIAgent;
-    private readonly GeminiAgent _geminiAgent;
-
-    public OrchestratorAgent()
-    {
-        _openAIAgent = new OpenAIAgent();
-        _geminiAgent = new GeminiAgent();
-    }
     public async Task<string> ProcessAsync(string prompt)
     {
-        var text = prompt.ToLower();
+        if (string.IsNullOrWhiteSpace(prompt))
+            throw new ArgumentException("Prompt não pode ser vazio.", nameof(prompt));
+
+        var text = prompt.ToLowerInvariant();
 
         var programmingKeywords = new[]
         {
@@ -29,14 +23,15 @@ public class OrchestratorAgent : IOrchestratorAgent
                 "definição", "história", "como funciona"
             };
 
-        bool isProgramming = programmingKeywords.Any(k => text.Contains(k));
-        bool isExplanation = explanationKeywords.Any(k => text.Contains(k));
+        var isProgramming = programmingKeywords.Any(k => text.Contains(k));
+        var isExplanation = explanationKeywords.Any(k => text.Contains(k));
 
         if (isProgramming)
-            return await _openAIAgent.AskSync(prompt);
-        else if (isExplanation)
-            return await _geminiAgent.AskSync(prompt);
-        else
-            return await _geminiAgent.AskSync(prompt);
+            return await openAIAgent.AskSync(prompt);
+
+        if (isExplanation)
+            return await geminiAgent.AskSync(prompt);
+
+        return await geminiAgent.AskSync(prompt);
     }
 }

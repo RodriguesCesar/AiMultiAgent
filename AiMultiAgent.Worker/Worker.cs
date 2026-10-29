@@ -1,71 +1,61 @@
-using AiMultiAgent.Application;
 using AiMultiAgent.Application.Interfaces;
 using AiMultiAgent.Infrastructure.Data.MongoDB;
+using AiMultiAgent.Infrastructure.Rabbit;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 
 namespace AiMultiAgent.Worker;
 
-public class Worker(ILogger<Worker> logger, IMongoRepository mongoRepository, IOrchestratorAgent orchestratorAgent) : BackgroundService
+public class Worker(
+    ILogger<Worker> logger,
+    IMongoRepository mongoRepository,
+    IOrchestratorAgent orchestratorAgent,
+    RabbitSettings rabbitSettings) : BackgroundService
 {
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var factory = new ConnectionFactory { HostName = rabbitSettings.HostName };
 
-        //Configurando a conexão com o servidor do RabbitMQ
-        var factory = new ConnectionFactory { HostName = "rabbitmq" };
+        await using var connection = await factory.CreateConnectionAsync(stoppingToken);
+        await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
-        //Conectando com o RabbitMQ
-        await using var connection = await factory.CreateConnectionAsync();
-        await using var channel = await connection.CreateChannelAsync();
-
-        //Criando a fila
         await channel.QueueDeclareAsync(
-                queue: "ai_queue",
-                durable: true,
-                exclusive: false,
-                autoDelete: false,
-                arguments: null
-            );
+            queue: rabbitSettings.QueueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: null,
+            cancellationToken: stoppingToken
+        );
 
-        //Consumer -> objeto que irá ler as mensagens da fila
         var consumer = new AsyncEventingBasicConsumer(channel);
 
-        //Programando a leitura da fila
-        consumer.ReceivedAsync += async (model, ea) =>
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             try
             {
-                //capturando a mensagem
                 var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-
-                //log
                 logger.LogInformation("Mensagem lida da fila com sucesso: {Message}", message);
 
-                //Enviar para o Orquestrador
                 var response = await orchestratorAgent.ProcessAsync(message);
-                //Salvar a resposta no MongoDB
                 await mongoRepository.SaveAsync(message, response);
-
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                logger.LogError(e, "Erro ao processar mensagem: {ErrorMessage}", e.Message);
+                logger.LogError(ex, "Erro ao processar mensagem: {ErrorMessage}", ex.Message);
             }
-
         };
 
-        //Executar o consumidor
         await channel.BasicConsumeAsync(
-                queue: "ai_queue",
-                autoAck: true,
-                consumer: consumer
-            );
+            queue: rabbitSettings.QueueName,
+            autoAck: true,
+            consumer: consumer,
+            cancellationToken: stoppingToken
+        );
 
-        logger.LogInformation("Worker aguardando mensagens...");
+        logger.LogInformation("Worker aguardando mensagens na fila {QueueName}...", rabbitSettings.QueueName);
 
-        //Manter o worker lendo a fila permanentemente
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 }

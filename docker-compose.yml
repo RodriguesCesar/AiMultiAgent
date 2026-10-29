@@ -24,8 +24,8 @@ services:
       - "8081:8081"
     environment:
       ME_CONFIG_MONGODB_SERVER: mongo
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-change-me}
     depends_on:
       - mongo
     networks:
@@ -53,6 +53,11 @@ services:
       dockerfile: AiMultiAgent.API/Dockerfile
     ports:
       - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      AI_API_KEY: ${AI_API_KEY:-}
+      Rabbit__HostName: rabbitmq
+      Rabbit__QueueName: ai_queue
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -66,6 +71,15 @@ services:
     build:
       context: .
       dockerfile: AiMultiAgent.Worker/Dockerfile
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      Rabbit__HostName: rabbitmq
+      Rabbit__QueueName: ai_queue
+      Mongo__ConnectionString: mongodb://mongo:27017
+      Mongo__DatabaseName: AiMultiAgent
+      Mongo__LogsCollectionName: Logs
     depends_on:
       rabbitmq:
         condition: service_healthy

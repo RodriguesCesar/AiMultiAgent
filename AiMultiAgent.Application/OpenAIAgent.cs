@@ -1,4 +1,3 @@
-﻿
 using OpenAI.Chat;
 
 namespace AiMultiAgent.Application;
@@ -6,17 +5,26 @@ namespace AiMultiAgent.Application;
 /// <summary>
 /// Classe para integração com o LLM da OpenAI.
 /// </summary>
-public class OpenAIAgent
+public class OpenAIAgent(string apiKey, string model)
 {
+    private readonly string _apiKey = apiKey;
+    private readonly string _model = string.IsNullOrWhiteSpace(model) ? "gpt-4.1-mini" : model;
+
     public async Task<string> AskSync(string prompt)
     {
+        if (string.IsNullOrWhiteSpace(prompt))
+            throw new ArgumentException("Prompt não pode ser vazio.", nameof(prompt));
+
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            throw new InvalidOperationException("OpenAI API Key não configurada. Use LLM__OpenAI__ApiKey.");
+
         var client = new ChatClient(
-             model: "gpt-4.1-mini",
-             apiKey: "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"
+             model: _model,
+             apiKey: _apiKey
          );
 
         var response = await client.CompleteChatAsync(prompt);
 
-        return response.Value.Content[0].Text;
+        return response.Value.Content.FirstOrDefault()?.Text ?? string.Empty;
     }
 }

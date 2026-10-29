@@ -1,22 +1,37 @@
+using AiMultiAgent.API.Security;
 using AiMultiAgent.Infrastructure.Rabbit;
 using AiMultiAgent.Infrastructure.Rabbit.Infaces;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddSingleton(new RabbitSettings
+{
+    HostName = builder.Configuration["Rabbit:HostName"] ?? "rabbitmq",
+    QueueName = builder.Configuration["Rabbit:QueueName"] ?? "ai_queue"
+});
+
 builder.Services.AddScoped<IRabbitPublisher, RabbitPublisher>();
+
+builder.Services
+    .AddAuthentication("ApiKey")
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", _ => { });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -1,30 +1,33 @@
-﻿using AiMultiAgent.Infrastructure.Rabbit.Infaces;
+using AiMultiAgent.Infrastructure.Rabbit.Infaces;
 using RabbitMQ.Client;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace AiMultiAgent.Infrastructure.Rabbit;
 
-public class RabbitPublisher : IRabbitPublisher
+public class RabbitPublisher(RabbitSettings rabbitSettings) : IRabbitPublisher
 {
-
     public async Task PublishAsync(string message)
     {
-        var factory = new RabbitMQ.Client.ConnectionFactory() { HostName = "rabbitmq" };
+        if (string.IsNullOrWhiteSpace(message))
+            throw new ArgumentException("Mensagem não pode ser vazia.", nameof(message));
+
+        var factory = new ConnectionFactory { HostName = rabbitSettings.HostName };
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
-        await channel.QueueDeclareAsync(queue: "ai_queue",
-                                     durable: true,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
+
+        await channel.QueueDeclareAsync(
+            queue: rabbitSettings.QueueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: null
+        );
 
         var body = Encoding.UTF8.GetBytes(message);
         await channel.BasicPublishAsync(
-                exchange: "",
-                routingKey: "ai_queue",
-                body: body
-            );
+            exchange: string.Empty,
+            routingKey: rabbitSettings.QueueName,
+            body: body
+        );
     }
 }
