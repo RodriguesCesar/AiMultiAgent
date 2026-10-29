@@ -155,7 +155,7 @@ public class Worker(
     private async Task RepublishWithRetryAsync(
         IChannel channel,
         string message,
-        IReadOnlyDictionary<string, object?>? headers,
+        IDictionary<string, object?>? headers,
         int nextRetry,
         CancellationToken cancellationToken)
     {
@@ -188,7 +188,7 @@ public class Worker(
         return currentRetry < maxRetryCount;
     }
 
-    internal static int ParseRetryCount(IReadOnlyDictionary<string, object?>? headers)
+    internal static int ParseRetryCount(IDictionary<string, object?>? headers)
     {
         if (headers == null || !headers.TryGetValue(RetryHeaderName, out var value) || value == null)
             return 0;

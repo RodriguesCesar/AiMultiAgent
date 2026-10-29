@@ -4,7 +4,9 @@ using AiMultiAgent.Infrastructure.Data.MongoDB;
 using AiMultiAgent.Infrastructure.Rabbit;
 using AiMultiAgent.Worker;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = Host.CreateApplicationBuilder(args);
 

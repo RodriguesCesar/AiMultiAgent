@@ -3,7 +3,9 @@ using AiMultiAgent.Infrastructure.Rabbit;
 using AiMultiAgent.Infrastructure.Rabbit.Infaces;
 using Microsoft.AspNetCore.Authentication;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
