@@ -3,10 +3,55 @@ using AiMultiAgent.Application.Interfaces;
 using AiMultiAgent.Infrastructure.Data.MongoDB;
 using AiMultiAgent.Infrastructure.Rabbit;
 using AiMultiAgent.Worker;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
+var otelServiceName = builder.Configuration["OpenTelemetry:ServiceName"] ?? "AiMultiAgent.Worker";
+var otelEndpoint = builder.Configuration["OpenTelemetry:Otlp:Endpoint"]
+                   ?? Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+var otelProtocolRaw = builder.Configuration["OpenTelemetry:Otlp:Protocol"]
+                      ?? Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_PROTOCOL")
+                      ?? "grpc";
+var otelProtocol = string.Equals(otelProtocolRaw, "http/protobuf", StringComparison.OrdinalIgnoreCase)
+    ? OtlpExportProtocol.HttpProtobuf
+    : OtlpExportProtocol.Grpc;
+
+builder.Services
+    .AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(otelServiceName))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddHttpClientInstrumentation()
+            .AddSource("AiMultiAgent.Worker")
+            .AddSource("AiMultiAgent.Application")
+            .AddOtlpExporter(options =>
+            {
+                if (!string.IsNullOrWhiteSpace(otelEndpoint))
+                    options.Endpoint = new Uri(otelEndpoint);
+
+                options.Protocol = otelProtocol;
+            });
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddMeter("AiMultiAgent.Worker")
+            .AddMeter("AiMultiAgent.Application")
+            .AddOtlpExporter(options =>
+            {
+                if (!string.IsNullOrWhiteSpace(otelEndpoint))
+                    options.Endpoint = new Uri(otelEndpoint);
+
+                options.Protocol = otelProtocol;
+            });
+    });
 
 var openAiApiKey = builder.Configuration["LLM:OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
 var openAiModel = builder.Configuration["LLM:OpenAI:Model"] ?? "gpt-4.1-mini";

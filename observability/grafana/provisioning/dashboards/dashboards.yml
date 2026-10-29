@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: AiMultiAgent
+    orgId: 1
+    folder: AiMultiAgent
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

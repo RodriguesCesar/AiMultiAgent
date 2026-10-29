@@ -1,9 +1,11 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Text;
 using AiMultiAgent.Application.Interfaces;
 using AiMultiAgent.Infrastructure.Data.MongoDB;
 using AiMultiAgent.Infrastructure.Rabbit;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Text;
 
 namespace AiMultiAgent.Worker;
 
@@ -14,6 +16,13 @@ public class Worker(
     RabbitSettings rabbitSettings) : BackgroundService
 {
     private const string RetryHeaderName = "x-retry-count";
+    private static readonly ActivitySource ActivitySource = new("AiMultiAgent.Worker");
+    private static readonly Meter Meter = new("AiMultiAgent.Worker");
+    private static readonly Counter<long> ProcessedCounter = Meter.CreateCounter<long>("ai_worker_messages_processed_total");
+    private static readonly Counter<long> FailedCounter = Meter.CreateCounter<long>("ai_worker_messages_failed_total");
+    private static readonly Counter<long> RetriedCounter = Meter.CreateCounter<long>("ai_worker_messages_retried_total");
+    private static readonly Counter<long> DlqCounter = Meter.CreateCounter<long>("ai_worker_messages_dlq_total");
+    private static readonly Histogram<double> ProcessingDurationMs = Meter.CreateHistogram<double>("ai_worker_message_processing_ms");
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -23,12 +32,18 @@ public class Worker(
         await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
         await EnsureTopologyAsync(channel, stoppingToken);
+        await channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: stoppingToken);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
 
         consumer.ReceivedAsync += async (_, ea) =>
         {
             var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var startedAt = Stopwatch.GetTimestamp();
+
+            using var activity = ActivitySource.StartActivity("worker.process_message", ActivityKind.Consumer);
+            activity?.SetTag("messaging.system", "rabbitmq");
+            activity?.SetTag("messaging.destination", rabbitSettings.QueueName);
 
             try
             {
@@ -38,9 +53,13 @@ public class Worker(
                 await mongoRepository.SaveAsync(message, response);
 
                 await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+
+                ProcessedCounter.Add(1, new KeyValuePair<string, object?>("queue", rabbitSettings.QueueName));
             }
             catch (Exception ex)
             {
+                FailedCounter.Add(1, new KeyValuePair<string, object?>("queue", rabbitSettings.QueueName));
+
                 var currentRetry = GetRetryCount(ea.BasicProperties?.Headers);
 
                 if (currentRetry < rabbitSettings.MaxRetryCount)
@@ -48,6 +67,8 @@ public class Worker(
                     var nextRetry = currentRetry + 1;
                     await RepublishWithRetryAsync(channel, message, ea.BasicProperties?.Headers, nextRetry, stoppingToken);
                     await channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+
+                    RetriedCounter.Add(1, new KeyValuePair<string, object?>("queue", rabbitSettings.QueueName));
 
                     logger.LogWarning(
                         ex,
@@ -60,6 +81,7 @@ public class Worker(
                 else
                 {
                     await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false, stoppingToken);
+                    DlqCounter.Add(1, new KeyValuePair<string, object?>("queue", rabbitSettings.DeadLetterQueueName));
 
                     logger.LogError(
                         ex,
@@ -69,6 +91,11 @@ public class Worker(
                         message
                     );
                 }
+            }
+            finally
+            {
+                var elapsedMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+                ProcessingDurationMs.Record(elapsedMs, new KeyValuePair<string, object?>("queue", rabbitSettings.QueueName));
             }
         };
 

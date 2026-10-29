@@ -61,6 +61,8 @@ services:
       Rabbit__DeadLetterExchange: ${RABBIT_DLX:-ai_dlx}
       Rabbit__DeadLetterQueueName: ${RABBIT_DLQ:-ai_queue.dlq}
       Rabbit__MaxRetryCount: ${RABBIT_MAX_RETRY:-3}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -86,6 +88,8 @@ services:
       Mongo__ConnectionString: mongodb://mongo:27017
       Mongo__DatabaseName: AiMultiAgent
       Mongo__LogsCollectionName: Logs
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
     depends_on:
       rabbitmq:
         condition: service_healthy

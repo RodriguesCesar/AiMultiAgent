@@ -25,6 +25,53 @@ Arquitetura multi-agente com API + Worker assíncrono usando RabbitMQ e MongoDB.
   - exchange: `ai_dlx`
   - queue: `ai_queue.dlq`
 
+## Observabilidade (Fase 3)
+
+### Instrumentação OpenTelemetry
+
+A API e o Worker exportam traces e métricas via OTLP.
+
+Service names:
+- `AiMultiAgent.API`
+- `AiMultiAgent.Worker`
+
+Métricas customizadas principais:
+- `ai_api_prompts_received_total`
+- `ai_api_prompt_validation_errors_total`
+- `ai_worker_messages_processed_total`
+- `ai_worker_messages_failed_total`
+- `ai_worker_messages_retried_total`
+- `ai_worker_messages_dlq_total`
+- `ai_worker_message_processing_ms`
+- `ai_orchestrator_routing_total` (com tag `provider`)
+- `ai_agent_requests_total` (com tags `provider` e `model`)
+- `ai_agent_errors_total` (com tags `provider` e `model`)
+- `ai_agent_duration_ms` (com tags `provider` e `model`)
+
+### Stack local de observabilidade
+
+Arquivos adicionados:
+- `docker-compose.observability.yml`
+- `observability/otel-collector-config.yaml`
+- `observability/prometheus.yml`
+- `observability/grafana/provisioning/datasources/datasources.yml`
+- `observability/grafana/provisioning/dashboards/dashboards.yml`
+- `observability/grafana/dashboards/queue-and-agents-overview.json`
+
+Suba tudo (app + observabilidade):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+```
+
+Acessos locais:
+- Grafana: `http://localhost:3000` (admin/admin)
+- Jaeger: `http://localhost:16686`
+- Prometheus: `http://localhost:9090`
+
+Dashboard provisionado automaticamente:
+- `AiMultiAgent / AiMultiAgent - Queue & Agents Overview`
+
 ## Configuração rápida
 
 1. Copie `.env.example` para `.env` e preencha os valores:
@@ -57,6 +104,8 @@ curl -X POST http://localhost:5000/api/ai \
 - `Rabbit__DeadLetterExchange`
 - `Rabbit__DeadLetterQueueName`
 - `Rabbit__MaxRetryCount`
+- `OTEL_EXPORTER_OTLP_ENDPOINT`
+- `OTEL_EXPORTER_OTLP_PROTOCOL` (`grpc` ou `http/protobuf`)
 
 ### Worker
 - `OPENAI_API_KEY`
@@ -71,6 +120,8 @@ curl -X POST http://localhost:5000/api/ai \
 - `Mongo__ConnectionString`
 - `Mongo__DatabaseName`
 - `Mongo__LogsCollectionName`
+- `OTEL_EXPORTER_OTLP_ENDPOINT`
+- `OTEL_EXPORTER_OTLP_PROTOCOL` (`grpc` ou `http/protobuf`)
 
 ## Estrutura do projeto
 
@@ -89,7 +140,7 @@ Pipeline GitHub Actions em `.github/workflows/ci.yml` com:
 
 ## Próximas evoluções recomendadas
 
-- Observabilidade: OpenTelemetry + métricas por provedor/modelo.
 - Testes automatizados para orquestrador e integração API/Worker.
 - Política de roteamento por custo/latência/qualidade (não só keyword).
 - Endpoint para inspeção da DLQ (admin/ops).
+- Persistência de metadados de execução (provider/model/latência/status) no MongoDB.
