@@ -56,11 +56,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AI_API_KEY: ${AI_API_KEY:-}
-      Rabbit__HostName: rabbitmq
-      Rabbit__QueueName: ai_queue
-      Rabbit__DeadLetterExchange: ai_dlx
-      Rabbit__DeadLetterQueueName: ai_queue.dlq
-      Rabbit__MaxRetryCount: 3
+      Rabbit__HostName: ${RABBIT_HOSTNAME:-rabbitmq}
+      Rabbit__QueueName: ${RABBIT_QUEUE_NAME:-ai_queue}
+      Rabbit__DeadLetterExchange: ${RABBIT_DLX:-ai_dlx}
+      Rabbit__DeadLetterQueueName: ${RABBIT_DLQ:-ai_queue.dlq}
+      Rabbit__MaxRetryCount: ${RABBIT_MAX_RETRY:-3}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -78,11 +78,11 @@ services:
       DOTNET_ENVIRONMENT: Development
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      Rabbit__HostName: rabbitmq
-      Rabbit__QueueName: ai_queue
-      Rabbit__DeadLetterExchange: ai_dlx
-      Rabbit__DeadLetterQueueName: ai_queue.dlq
-      Rabbit__MaxRetryCount: 3
+      Rabbit__HostName: ${RABBIT_HOSTNAME:-rabbitmq}
+      Rabbit__QueueName: ${RABBIT_QUEUE_NAME:-ai_queue}
+      Rabbit__DeadLetterExchange: ${RABBIT_DLX:-ai_dlx}
+      Rabbit__DeadLetterQueueName: ${RABBIT_DLQ:-ai_queue.dlq}
+      Rabbit__MaxRetryCount: ${RABBIT_MAX_RETRY:-3}
       Mongo__ConnectionString: mongodb://mongo:27017
       Mongo__DatabaseName: AiMultiAgent
       Mongo__LogsCollectionName: Logs
