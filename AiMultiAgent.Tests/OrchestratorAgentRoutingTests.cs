@@ -1,4 +1,5 @@
 using AiMultiAgent.Application;
+using Xunit;
 
 namespace AiMultiAgent.Tests;
 

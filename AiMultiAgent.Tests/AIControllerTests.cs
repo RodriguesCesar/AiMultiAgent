@@ -3,6 +3,7 @@ using AiMultiAgent.API.DTOs;
 using AiMultiAgent.Infrastructure.Rabbit.Infaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using Xunit;
 
 namespace AiMultiAgent.Tests;
 
