@@ -58,6 +58,9 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       Rabbit__HostName: rabbitmq
       Rabbit__QueueName: ai_queue
+      Rabbit__DeadLetterExchange: ai_dlx
+      Rabbit__DeadLetterQueueName: ai_queue.dlq
+      Rabbit__MaxRetryCount: 3
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -77,6 +80,9 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       Rabbit__HostName: rabbitmq
       Rabbit__QueueName: ai_queue
+      Rabbit__DeadLetterExchange: ai_dlx
+      Rabbit__DeadLetterQueueName: ai_queue.dlq
+      Rabbit__MaxRetryCount: 3
       Mongo__ConnectionString: mongodb://mongo:27017
       Mongo__DatabaseName: AiMultiAgent
       Mongo__LogsCollectionName: Logs

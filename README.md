@@ -16,6 +16,15 @@ Arquitetura multi-agente com API + Worker assíncrono usando RabbitMQ e MongoDB.
 
 > **Ação obrigatória**: se as chaves antigas já foram versionadas, faça rotação/revogação imediata nos provedores.
 
+## Confiabilidade de fila (Fase 2)
+
+- `manual ack` no Worker (`autoAck: false`).
+- Retry automático por mensagem com header `x-retry-count`.
+- Limite configurável de tentativas (`Rabbit:MaxRetryCount`, default 3).
+- Mensagem excedendo tentativas vai para **DLQ**:
+  - exchange: `ai_dlx`
+  - queue: `ai_queue.dlq`
+
 ## Configuração rápida
 
 1. Copie `.env.example` para `.env` e preencha os valores:
@@ -45,6 +54,9 @@ curl -X POST http://localhost:5000/api/ai \
 - `AI_API_KEY`: chave exigida no header `X-API-Key`.
 - `Rabbit__HostName`
 - `Rabbit__QueueName`
+- `Rabbit__DeadLetterExchange`
+- `Rabbit__DeadLetterQueueName`
+- `Rabbit__MaxRetryCount`
 
 ### Worker
 - `OPENAI_API_KEY`
@@ -53,6 +65,9 @@ curl -X POST http://localhost:5000/api/ai \
 - `LLM__Gemini__Model` (opcional, default `gemini-2.5-flash`)
 - `Rabbit__HostName`
 - `Rabbit__QueueName`
+- `Rabbit__DeadLetterExchange`
+- `Rabbit__DeadLetterQueueName`
+- `Rabbit__MaxRetryCount`
 - `Mongo__ConnectionString`
 - `Mongo__DatabaseName`
 - `Mongo__LogsCollectionName`
@@ -74,7 +89,7 @@ Pipeline GitHub Actions em `.github/workflows/ci.yml` com:
 
 ## Próximas evoluções recomendadas
 
-- Confiabilidade de fila: `manual ack`, retry e DLQ.
 - Observabilidade: OpenTelemetry + métricas por provedor/modelo.
 - Testes automatizados para orquestrador e integração API/Worker.
 - Política de roteamento por custo/latência/qualidade (não só keyword).
+- Endpoint para inspeção da DLQ (admin/ops).
