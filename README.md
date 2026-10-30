@@ -8,7 +8,7 @@ Arquitetura multi-agente com API + Worker assíncrono usando RabbitMQ e MongoDB.
 2. O Worker consome a fila e roteia o prompt para um provedor LLM (OpenAI ou Gemini).
 3. A resposta é persistida no MongoDB para rastreabilidade.
 
-## Segurança (Fase 1)
+## Segurança 
 
 - Chaves de OpenAI e Gemini não ficam mais no código-fonte.
 - A API exige `X-API-Key` para aceitar prompts.
@@ -16,7 +16,7 @@ Arquitetura multi-agente com API + Worker assíncrono usando RabbitMQ e MongoDB.
 
 > **Ação obrigatória**: se as chaves antigas já foram versionadas, faça rotação/revogação imediata nos provedores.
 
-## Confiabilidade de fila (Fase 2)
+## Confiabilidade de fila 
 
 - `manual ack` no Worker (`autoAck: false`).
 - Retry automático por mensagem com header `x-retry-count`.
@@ -25,7 +25,7 @@ Arquitetura multi-agente com API + Worker assíncrono usando RabbitMQ e MongoDB.
   - exchange: `ai_dlx`
   - queue: `ai_queue.dlq`
 
-## Observabilidade (Fase 3)
+## Observabilidade 
 
 ### Instrumentação OpenTelemetry
 
@@ -72,7 +72,7 @@ Acessos locais:
 Dashboard provisionado automaticamente:
 - `AiMultiAgent / AiMultiAgent - Queue & Agents Overview`
 
-## Testes automatizados (Fase 4)
+## Testes automatizados 
 
 Projeto de testes: `AiMultiAgent.Tests`
 
